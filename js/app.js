@@ -6,8 +6,11 @@ $(function() {
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "hra": "http://example.org/virtualhome2kg/ontology/homeriskactivity/",
+        "an": "http://example.org/virtualhome2kg/ontology/action/",
         "vh2kg": "http://example.org/virtualhome2kg/ontology/",
-        "ex": "http://example.org/virtualhome2kg/instance/"
+        "ex": "http://example.org/virtualhome2kg/instance/",
+        "ho": "http://www.owl-ontologies.com/VirtualHome.owl#",
+        "owl": "http://www.w3.org/2002/07/owl#"
     };
     var file_map = {};
     var scene = "1";
@@ -25,23 +28,23 @@ $(function() {
         edges: edges
     };
     let options = {
-        edges: {
-            smooth: false
+        "edges": {
+            "smooth": false
         },
-        physics: {
-            solver: "forceAtlas2Based",
-            maxVelocity: 200,
-            stabilization: {
-                enabled: true,
-                iterations: 1000,
-                updateInterval: 25
+        "physics": {
+            "solver": "forceAtlas2Based",
+            "maxVelocity": 200,
+            "stabilization": {
+                "enabled": true,
+                "iterations": 1000,
+                "updateInterval": 25
             }
         },
-        interaction: {
-            hover: true,
-            dragNodes: true,
-            zoomView: true,
-            dragView: true
+        "interaction": {
+            "hover": true,
+            "dragNodes": true,
+            "zoomView": true,
+            "dragView": true
         }
     };
     var network = new vis.Network(container, data, options);
@@ -222,29 +225,37 @@ $(function() {
         return str;
     }
 
+    function clear() {
+        allNodes = [];
+        allEdges = [];
+        nodes.clear();
+        edges.clear();
+        network.redraw();
+    }
+
     function showGraph(event) {
+        clear();
         let sparql = `
-        PREFIX vh2kg: <http://example.org/virtualhome2kg/instance/>
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
         SELECT * WHERE {
             ?s ?p ?o .
-            FILTER (?s = vh2kg:${event.text().toLowerCase()}_scene${scene})
+            FILTER (?s = ex:${event.text().toLowerCase()}_scene${scene})
         }        
         `
-        $.getJSON(url, { "query": sparql }, function(data) {
+        $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
             let bindings = data.results.bindings;
-            console.log(bindings);
             for (i = 0; i < bindings.length; i++) {
                 let s = bindings[i].s.value;
                 let p = bindings[i].p.value;
                 let o = bindings[i].o.value;
                 let oType = bindings[i].o.type;
-                s = replace_prefix(s);
-                p = replace_prefix(p);
-                o = replace_prefix(o);
+                s_label = replace_prefix(s);
+                p_label = replace_prefix(p);
+                o_label = replace_prefix(o);
                 /* create nodes */
                 let nodeS = nodes.get(s);
                 if (nodeS == undefined) {
-                    allNodes.push({ id: s, label: s, shape: "dot", size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+                    allNodes.push({ id: s, label: s_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
                 }
                 let nodeO = undefined;
                 if (oType == "uri") {
@@ -254,17 +265,17 @@ $(function() {
                 }
                 if (nodeO == undefined) {
                     if (oType == "uri") {
-                        allNodes.push({ id: o, label: o, shape: "dot", size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
+                        allNodes.push({ id: o, label: o_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
                     } else {
                         if (o != "") { //日本語または英語ラベルがない場合は表示しない
-                            allNodes.push({ id: o + "literal", label: o, title: o, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+                            allNodes.push({ id: o + "literal", label: o_label, title: o, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
                         }
                     }
                 }
                 if (oType == "uri") {
-                    allEdges.push({ from: s, to: o, title: p, arrows: { to: { enabled: true } } });
+                    allEdges.push({ from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
                 } else {
-                    allEdges.push({ from: s, to: o + "literal", title: p, arrows: { to: { enabled: true } } });
+                    allEdges.push({ from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                 }
             }
             console.log(allNodes.length);
@@ -276,6 +287,77 @@ $(function() {
             return false;
         });
         return false;
+    }
+
+    network.on("doubleClick", function(params) {
+        network.setOptions({ physics: false });
+        let selectNodeId = params.nodes[0];
+        //ダブルクリックされたオブジェクトがリテラルでないノード
+        if (selectNodeId != undefined && selectNodeId.includes("literal") == false) {
+            expand(selectNodeId);
+        }
+    });
+
+    function expand(selectNodeId) {
+        let sparql = `
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+        SELECT DISTINCT * WHERE {
+            {<${selectNodeId}> ?p ?o .} 
+            UNION {?s ?p2 <${selectNodeId}> .}
+        }
+        `;
+        console.log(sparql);
+        $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
+            let bindings = data.results.bindings;
+            console.log(bindings);
+            for (var i = 0; i < bindings.length; i++) {
+                if (bindings[i].p) {
+                    //展開ノードが持つプロパティについて
+                    let o = bindings[i].o.value;
+                    let oType = bindings[i].o.type;
+                    o_label = replace_prefix(o);
+                    let nodeO = undefined;
+                    let p = bindings[i].p.value;
+                    p_label = replace_prefix(p);
+                    if (oType == "uri") {
+                        nodeO = nodes.get(o);
+                    } else {
+                        nodeO = nodes.get(o + "literal");
+                    }
+                    if (nodeO == undefined) {
+                        if (oType == "uri") {
+                            allNodes.push({ id: o, label: o_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
+                        } else {
+                            if (o != "") { //日本語または英語ラベルがない場合は表示しない
+                                allNodes.push({ id: o + "literal", label: o_label, title: o, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+                            }
+                        }
+                    }
+                    if (oType == "uri") {
+                        allEdges.push({ from: selectNodeId, to: o, label: p, arrows: { to: { enabled: true } } });
+                    } else {
+                        allEdges.push({ from: selectNodeId, to: o + "literal", label: p, arrows: { to: { enabled: true } } });
+                    }
+                } else {
+                    //展開ノードの被リンク
+                    let s = bindings[i].s.value;
+                    s_label = replace_prefix(s);
+                    let nodeS = undefined;
+                    let p2 = bindings[i].p2.value;
+                    p2_label = replace_prefix(p2);
+                    nodeS = nodes.get(s);
+                    if (nodeS == undefined) {
+                        allNodes.push({ id: s, label: s_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
+                    }
+                    allEdges.push({ from: s, to: selectNodeId, label: p2, arrows: { to: { enabled: true } } });
+                }
+                nodes.update(allNodes);
+                edges.update(allEdges);
+
+                network.setOptions({ physics: true });
+            }
+
+        });
     }
 
     /* Event handler */
@@ -290,6 +372,7 @@ $(function() {
     $(document).on("click", ".videolist", function(e) {
         let video = $(this);
         showVideo(video);
+        showGraph(video);
         return false;
     });
 
