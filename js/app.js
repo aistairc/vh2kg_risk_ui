@@ -1,10 +1,51 @@
 $(function() {
+    const repository = "vh2kg_ieee_access_202204";
+    const endpointURL = "http://localhost:7200/repositories/";
+    const url = endpointURL + repository;
+    const namespaces = {
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "hra": "http://example.org/virtualhome2kg/ontology/homeriskactivity/",
+        "vh2kg": "http://example.org/virtualhome2kg/ontology/",
+        "ex": "http://example.org/virtualhome2kg/instance/"
+    };
     var file_map = {};
-    var repository = "vh2kg_ieee_access_202204";
-    var endpointURL = "http://localhost:7200/repositories/";
-    var url = endpointURL + repository;
     var scene = "1";
     var activity_time_map = {};
+
+    var nodes = new vis.DataSet();
+    var edges = new vis.DataSet();
+    var allNodes = [];
+    var allEdges = [];
+
+    /* network confing and main */
+    let container = document.getElementById('mynetwork');
+    let data = {
+        nodes: nodes,
+        edges: edges
+    };
+    let options = {
+        edges: {
+            smooth: false
+        },
+        physics: {
+            solver: "forceAtlas2Based",
+            maxVelocity: 200,
+            stabilization: {
+                enabled: true,
+                iterations: 1000,
+                updateInterval: 25
+            }
+        },
+        interaction: {
+            hover: true,
+            dragNodes: true,
+            zoomView: true,
+            dragView: true
+        }
+    };
+    var network = new vis.Network(container, data, options);
+
 
     /* Function */
 
@@ -13,9 +54,9 @@ $(function() {
         let sparql = `
         PREFIX : <http://example.org/virtualhome2kg/ontology/>
         PREFIX time: <http://www.w3.org/2006/time#>
-        PREFIX vh2kg: <http://example.org/virtualhome2kg/instance/>
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
         SELECT ?event ?id ?duration WHERE { 
-            vh2kg:${video_name.toLowerCase()}_scene${scene} :hasEvent ?event .
+            ex:${video_name.toLowerCase()}_scene${scene} :hasEvent ?event .
             ?event :time ?time ;
                    :eventNumber ?id .
             ?time time:numericDuration ?duration .
@@ -41,9 +82,9 @@ $(function() {
     function getRiskFactor(video_name) {
         let sparql = `
         PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
-        PREFIX vh2kg: <http://example.org/virtualhome2kg/instance/>
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
         SELECT DISTINCT ?risk_factor WHERE {
-        vh2kg:${video_name.toLowerCase()}_scene${scene} a hra:RiskActivity ;
+        ex:${video_name.toLowerCase()}_scene${scene} a hra:RiskActivity ;
     	    hra:riskFactor ?risk_factor .
         }`;
         $.getJSON(url, { "query": sparql }, function(data) {
@@ -171,11 +212,78 @@ $(function() {
         return false;
     }
 
+    function replace_prefix(str) {
+        for (ns in namespaces) {
+            if (str.includes(namespaces[ns])) {
+                str = str.replace(namespaces[ns], ns + ":");
+            }
+        }
+        str = str.replace("_scene" + scene, "");
+        return str;
+    }
+
+    function showGraph(event) {
+        let sparql = `
+        PREFIX vh2kg: <http://example.org/virtualhome2kg/instance/>
+        SELECT * WHERE {
+            ?s ?p ?o .
+            FILTER (?s = vh2kg:${event.text().toLowerCase()}_scene${scene})
+        }        
+        `
+        $.getJSON(url, { "query": sparql }, function(data) {
+            let bindings = data.results.bindings;
+            console.log(bindings);
+            for (i = 0; i < bindings.length; i++) {
+                let s = bindings[i].s.value;
+                let p = bindings[i].p.value;
+                let o = bindings[i].o.value;
+                let oType = bindings[i].o.type;
+                s = replace_prefix(s);
+                p = replace_prefix(p);
+                o = replace_prefix(o);
+                /* create nodes */
+                let nodeS = nodes.get(s);
+                if (nodeS == undefined) {
+                    allNodes.push({ id: s, label: s, shape: "dot", size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+                }
+                let nodeO = undefined;
+                if (oType == "uri") {
+                    nodeO = nodes.get(o);
+                } else {
+                    nodeO = nodes.get(o + "literal");
+                }
+                if (nodeO == undefined) {
+                    if (oType == "uri") {
+                        allNodes.push({ id: o, label: o, shape: "dot", size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
+                    } else {
+                        if (o != "") { //日本語または英語ラベルがない場合は表示しない
+                            allNodes.push({ id: o + "literal", label: o, title: o, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+                        }
+                    }
+                }
+                if (oType == "uri") {
+                    allEdges.push({ from: s, to: o, title: p, arrows: { to: { enabled: true } } });
+                } else {
+                    allEdges.push({ from: s, to: o + "literal", title: p, arrows: { to: { enabled: true } } });
+                }
+            }
+            console.log(allNodes.length);
+            nodes.update(allNodes);
+            edges.update(allEdges);
+
+            network.setOptions({ physics: true });
+            network.redraw();
+            return false;
+        });
+        return false;
+    }
+
     /* Event handler */
 
     $(document).on("click", ".risk-factor", function(e) {
         let event = $(this);
         showRiskPart(event);
+        showGraph(event);
         return false;
     });
 
