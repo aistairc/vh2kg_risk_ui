@@ -285,7 +285,6 @@ $(function() {
                     allEdges.push({ from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                 }
             }
-            console.log(allNodes.length);
             nodes.update(allNodes);
             edges.update(allEdges);
 
@@ -313,10 +312,8 @@ $(function() {
             UNION {?s ?p2 <${selectNodeId}> .}
         }
         `;
-        console.log(sparql);
         $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
             let bindings = data.results.bindings;
-            console.log(bindings);
             for (var i = 0; i < bindings.length; i++) {
                 if (bindings[i].p) {
                     //展開ノードが持つプロパティについて
