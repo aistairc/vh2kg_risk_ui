@@ -29,7 +29,10 @@ $(function() {
     };
     let options = {
         "edges": {
-            "smooth": false
+            "smooth": {
+                "roundness": 0.2,
+                "type": 'dynamic'
+            }
         },
         "physics": {
             "solver": "forceAtlas2Based",
@@ -273,7 +276,11 @@ $(function() {
                     }
                 }
                 if (oType == "uri") {
-                    allEdges.push({ from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
+                    if (p_label == "hra:riskFactor") {
+                        allEdges.push({ from: s, to: o, label: p_label, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+                    } else {
+                        allEdges.push({ from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
+                    }
                 } else {
                     allEdges.push({ from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                 }
