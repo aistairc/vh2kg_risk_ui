@@ -20,6 +20,7 @@ $(function() {
     var edges = new vis.DataSet();
     var allNodes = [];
     var allEdges = [];
+    var opened = [];
 
     /* network confing and main */
     let container = document.getElementById('mynetwork');
@@ -295,15 +296,6 @@ $(function() {
         return false;
     }
 
-    network.on("doubleClick", function(params) {
-        network.setOptions({ physics: false });
-        let selectNodeId = params.nodes[0];
-        //ダブルクリックされたオブジェクトがリテラルでないノード
-        if (selectNodeId != undefined && selectNodeId.includes("literal") == false) {
-            expand(selectNodeId);
-        }
-    });
-
     function expand(selectNodeId) {
         let sparql = `
         PREFIX ex: <http://example.org/virtualhome2kg/instance/>
@@ -312,6 +304,30 @@ $(function() {
             UNION {?s ?p2 <${selectNodeId}> .}
         }
         `;
+        if (opened.includes(selectNodeId)) {
+            // delete edge
+            let index = opened.indexOf(selectNodeId);
+            opened.splice(index, 1);
+            let items = edges.get({
+                filter: function(item) {
+                    return item.from.includes(selectNodeId);
+                }
+            });
+            edges.remove(items);
+            items = edges.get({
+                filter: function(item) {
+                    return item.to.includes(selectNodeId);
+                }
+            });
+            edges.remove(items);
+            let i = 0;
+            allEdges = allEdges.filter((item) => item.from != selectNodeId);
+            allEdges = allEdges.filter((item) => item.to != selectNodeId);
+            return false;
+        } else {
+            opened.push(selectNodeId);
+        }
+        opened.push(selectNodeId);
         $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
             let bindings = data.results.bindings;
             for (var i = 0; i < bindings.length; i++) {
@@ -360,16 +376,98 @@ $(function() {
 
                 network.setOptions({ physics: true });
             }
+        });
+    }
 
+    function explain(event) {
+        let sparql = `
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+        PREFIX vh2kg: <http://example.org/virtualhome2kg/instance/>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX : <http://example.org/virtualhome2kg/ontology/>
+        PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+        SELECT * WHERE {
+            ?s :action ?action ;
+               :agent ?agent ;
+               :mainObject ?object ;
+               :situationBeforeEvent ?situation .
+            ?object :height ?oh .
+            ?agent :height ?ah .
+            ?oh rdf:value ?ohv ;
+                :unit ?ohunit .
+            ?ah rdf:value ?ahv .
+            ?state :isStateOf ?object ;
+                   :partOf ?situation ;
+                   :bbox ?shape .
+            ?shape x3do:bboxCenter ?c1.
+                   ?c1 rdf:first ?cx ;
+                         rdf:rest ?c2 .
+                   ?c2 rdf:first ?cy ;
+                          rdf:rest ?c3 .
+                   ?c3 rdf:first ?cz .
+            filter (?s = vh2kg:${event.text()}_scene${scene})
+        } limit 1
+        `;
+        $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
+            let bindings = data.results.bindings;
+            let s = bindings[0].s.value;
+            let action = bindings[0].action.value;
+            let object = bindings[0].object.value;
+            let object_label = replace_prefix(object);
+            let oh = bindings[0].oh.value;
+            let oh_label = replace_prefix(oh);
+            let ohv = bindings[0].ohv.value;
+            let ohunit = bindings[0].ohunit.value;
+            let ohunit_label = replace_prefix(ohunit);
+            let state = bindings[0].state.value;
+            let state_label = replace_prefix(state);
+            let shape = bindings[0].shape.value;
+            let shape_label = replace_prefix(shape);
+            let cx = bindings[0].cx.value;
+            let cy = bindings[0].cy.value;
+            let cz = bindings[0].cz.value;
+
+            // action
+            edges.update({ from: s, to: action, label: "vh2kg:action", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // object
+            edges.add({ from: s, to: object, label: "vh2kg:mainObject", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // height
+            nodes.add({ id: oh, label: oh_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+            edges.add({ from: object, to: oh, label: "vh2kg:height", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // unit
+            nodes.add({ id: ohunit, label: ohunit_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+            edges.add({ from: oh, to: ohunit, label: "vh2kg:unit", arrows: { to: { enabled: true } } });
+            // height value
+            nodes.add({ id: oh + "literal", label: ohv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+            edges.add({ from: oh, to: oh + "literal", label: "vh2kg:height", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // state
+            nodes.add({ id: state, label: state_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+            edges.add({ from: state, to: object, label: "vh2kg:isStateOf", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // shape
+            nodes.add({ id: shape, label: shape_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+            edges.add({ from: state, to: shape, label: "vh2kg:bbox", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            // x y z
+            nodes.add({ id: shape + "literal", label: "(" + cx + " " + cy + " " + cz + ")", shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+            edges.add({ from: shape, to: shape + "literal", label: "x3do:bboxCenter", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            return false;
         });
     }
 
     /* Event handler */
 
+    network.on("doubleClick", function(params) {
+        network.setOptions({ physics: false });
+        let selectNodeId = params.nodes[0];
+        //ダブルクリックされたオブジェクトがリテラルでないノード
+        if (selectNodeId != undefined && selectNodeId.includes("literal") == false) {
+            expand(selectNodeId);
+        }
+    });
+
     $(document).on("click", ".risk-factor", function(e) {
         let event = $(this);
         showRiskPart(event);
-        showGraph(event);
+        $.when(showGraph(event)).done(explain(event));
         return false;
     });
 
