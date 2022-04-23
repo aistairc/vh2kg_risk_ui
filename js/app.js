@@ -386,11 +386,16 @@ $(function() {
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX : <http://example.org/virtualhome2kg/ontology/>
         PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
         SELECT * WHERE {
-            ?s :action ?action ;
-               :agent ?agent ;
-               :mainObject ?object ;
-               :situationBeforeEvent ?situation .
+            ?s  a ?type ;
+                :action ?action ;
+                :agent ?agent ;
+                :mainObject ?object ;
+                :situationBeforeEvent ?situation .
+            ?type rdfs:subClassOf hra:RiskEvent ;
+                rdfs:label ?riskLabel .
             ?object :height ?oh .
             ?agent :height ?ah .
             ?oh rdf:value ?ohv ;
@@ -411,6 +416,8 @@ $(function() {
         $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
             let bindings = data.results.bindings;
             let s = bindings[0].s.value;
+            let riskType = bindings[0].type.value;
+            let riskType_label = bindings[0].riskLabel.value;
             let action = bindings[0].action.value;
             let object = bindings[0].object.value;
             let object_label = replace_prefix(object);
@@ -449,6 +456,8 @@ $(function() {
             // x y z
             nodes.add({ id: shape + "literal", label: "(" + cx + " " + cy + " " + cz + ")", shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
             edges.add({ from: shape, to: shape + "literal", label: "x3do:bboxCenter", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+
+            $("#risk-type-of-event").html("Risk type: <b>" + riskType_label + "</b>");
             return false;
         });
     }
