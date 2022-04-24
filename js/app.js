@@ -10,6 +10,7 @@ $(function() {
         "vh2kg": "http://example.org/virtualhome2kg/ontology/",
         "ex": "http://example.org/virtualhome2kg/instance/",
         "ho": "http://www.owl-ontologies.com/VirtualHome.owl#",
+        "time": "http://www.w3.org/2006/time#",
         "owl": "http://www.w3.org/2002/07/owl#"
     };
     var file_map = {};
@@ -276,14 +277,15 @@ $(function() {
                         }
                     }
                 }
+                /* create edges */
                 if (oType == "uri") {
                     if (p_label == "hra:riskFactor") {
-                        allEdges.push({ from: s, to: o, label: p_label, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+                        allEdges.push({ id: (s + p_label + o), from: s, to: o, label: p_label, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
                     } else {
-                        allEdges.push({ from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
+                        allEdges.push({ id: (s + p_label + o), from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
                     }
                 } else {
-                    allEdges.push({ from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
+                    allEdges.push({ id: (s + p_label + o), from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                 }
             }
             nodes.update(allNodes);
@@ -335,10 +337,10 @@ $(function() {
                     //展開ノードが持つプロパティについて
                     let o = bindings[i].o.value;
                     let oType = bindings[i].o.type;
-                    o_label = replace_prefix(o);
+                    let o_label = replace_prefix(o);
                     let nodeO = undefined;
                     let p = bindings[i].p.value;
-                    p_label = replace_prefix(p);
+                    let p_label = replace_prefix(p);
                     if (oType == "uri") {
                         nodeO = nodes.get(o);
                     } else {
@@ -354,9 +356,9 @@ $(function() {
                         }
                     }
                     if (oType == "uri") {
-                        allEdges.push({ from: selectNodeId, to: o, label: p, arrows: { to: { enabled: true } } });
+                        allEdges.push({ id: (selectNodeId + p_label + o), from: selectNodeId, to: o, label: p_label, arrows: { to: { enabled: true } } });
                     } else {
-                        allEdges.push({ from: selectNodeId, to: o + "literal", label: p, arrows: { to: { enabled: true } } });
+                        allEdges.push({ id: (selectNodeId + p_label + o + "literal"), from: selectNodeId, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                     }
                 } else {
                     //展開ノードの被リンク
@@ -369,7 +371,9 @@ $(function() {
                     if (nodeS == undefined) {
                         allNodes.push({ id: s, label: s_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } })
                     }
-                    allEdges.push({ from: s, to: selectNodeId, label: p2, arrows: { to: { enabled: true } } });
+                    if (edges.get(s + p2_label + selectNodeId) == null) {
+                        allEdges.push({ id: (s + p2_label + selectNodeId), from: s, to: selectNodeId, label: p2_label, arrows: { to: { enabled: true } } });
+                    }
                 }
                 nodes.update(allNodes);
                 edges.update(allEdges);
@@ -377,6 +381,23 @@ $(function() {
                 network.setOptions({ physics: true });
             }
         });
+    }
+
+    function edge_highlight(update_edge_list) {
+        let update_list = [];
+        for (edge_dic of update_edge_list) {
+            edge_id = edge_dic.s + edge_dic.p + edge_dic.o;
+            let edge = edges.get(edge_id)
+            if (edge == null) {
+                // create edge
+                edges.add({ from: edge_dic.s, to: edge_dic.o, label: edge_dic.p, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            } else {
+                edge["background"] = { enabled: true, color: "#ff0000", size: 8 };
+                console.log(edge);
+                update_list.push(edge);
+            }
+        }
+        edges.update(update_list);
     }
 
     function explain(event) {
@@ -419,6 +440,7 @@ $(function() {
             let riskType = bindings[0].type.value;
             let riskType_label = bindings[0].riskLabel.value;
             let action = bindings[0].action.value;
+            let action_label = replace_prefix(action);
             let object = bindings[0].object.value;
             let object_label = replace_prefix(object);
             let oh = bindings[0].oh.value;
@@ -434,30 +456,31 @@ $(function() {
             let cy = bindings[0].cy.value;
             let cz = bindings[0].cz.value;
 
+            let update_edge_list = [];
             // action
-            edges.update({ from: s, to: action, label: "vh2kg:action", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            update_edge_list.push({ "s": s, "p": "vh2kg:action", "o": action });
             // object
-            edges.add({ from: s, to: object, label: "vh2kg:mainObject", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
-            // height
+            update_edge_list.push({ "s": s, "p": "vh2kg:mainObject", "o": object });
+            // // height
             nodes.add({ id: oh, label: oh_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            edges.add({ from: object, to: oh, label: "vh2kg:height", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
-            // unit
+            update_edge_list.push({ "s": s, "p": "vh2kg:height", "o": oh });
+            // // unit
             nodes.add({ id: ohunit, label: ohunit_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            edges.add({ from: oh, to: ohunit, label: "vh2kg:unit", arrows: { to: { enabled: true } } });
+            edges.add({ from: oh, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
             // height value
             nodes.add({ id: oh + "literal", label: ohv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
-            edges.add({ from: oh, to: oh + "literal", label: "vh2kg:height", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            update_edge_list.push({ "s": oh, "p": "rdf:value", "o": oh + "literal" });
             // state
             nodes.add({ id: state, label: state_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            edges.add({ from: state, to: object, label: "vh2kg:isStateOf", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            update_edge_list.push({ "s": state, "p": "vh2kg:isStateOf", "o": object });
             // shape
             nodes.add({ id: shape, label: shape_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            edges.add({ from: state, to: shape, label: "vh2kg:bbox", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+            update_edge_list.push({ "s": state, "p": "vh2kg:bbox", "o": shape });
             // x y z
-            nodes.add({ id: shape + "literal", label: "(" + cx + " " + cy + " " + cz + ")", shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
-            edges.add({ from: shape, to: shape + "literal", label: "x3do:bboxCenter", background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
-
-            $("#risk-type-of-event").html("Risk type: <b>" + riskType_label + "</b>");
+            nodes.add({ id: shape + "literal", label: "(" + cx + ", " + cy + ", " + cz + ")", shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+            update_edge_list.push({ "s": shape, "p": "vh2kg:bboxCenter", "o": shape + "literal" });
+            edge_highlight(update_edge_list);
+            $("#risk-type-of-event").html("(Risk type: <b>" + riskType_label + "</b>)");
             return false;
         });
     }
