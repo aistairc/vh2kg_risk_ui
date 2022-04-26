@@ -23,3 +23,8 @@
 <http://example.org/virtualhome2kg/instance/event4_find_some_food_scene1> a hra:DoSomethingToHighPositionObject .
 
 <http://example.org/virtualhome2kg/instance/event5_find_some_food_scene1> a hra:DoSomethingToHighPositionObject .
+
+<http://example.org/virtualhome2kg/instance/take_off_clock_scene1> hra:riskFactor
+    <http://example.org/virtualhome2kg/instance/event1_take_off_clock_scene1> .
+
+<http://example.org/virtualhome2kg/instance/event1_take_off_clock_scene1> a hra:DoSomethingToHighPositionObject .
