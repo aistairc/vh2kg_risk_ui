@@ -441,6 +441,10 @@ $(function() {
             let riskType_label = bindings[0].riskLabel.value;
             let action = bindings[0].action.value;
             let action_label = replace_prefix(action);
+            let agent = bindings[0].agent.value;
+            let ah = bindings[0].ah.value;
+            let ah_label = replace_prefix(ah);
+            let ahv = bindings[0].ahv.value;
             let object = bindings[0].object.value;
             let object_label = replace_prefix(object);
             let oh = bindings[0].oh.value;
@@ -459,14 +463,23 @@ $(function() {
             let update_edge_list = [];
             // action
             update_edge_list.push({ "s": s, "p": "vh2kg:action", "o": action });
+            // agent
+            update_edge_list.push({ "s": s, "p": "vh2kg:agent", "o": agent });
+            // agent height
+            nodes.add({ id: ah, label: ah_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
+            update_edge_list.push({ "s": agent, "p": "vh2kg:agent", "o": ah });
+            // agent height value
+            nodes.add({ id: ah + "literal", label: ahv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
+            update_edge_list.push({ "s": ah, "p": "rdf:value", "o": ah + "literal" });
             // object
             update_edge_list.push({ "s": s, "p": "vh2kg:mainObject", "o": object });
-            // // height
+            // height
             nodes.add({ id: oh, label: oh_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
             update_edge_list.push({ "s": object, "p": "vh2kg:height", "o": oh });
-            // // unit
+            // unit
             nodes.add({ id: ohunit, label: ohunit_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
             edges.add({ from: oh, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
+            edges.add({ from: ah, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
             // height value
             nodes.add({ id: oh + "literal", label: ohv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
             update_edge_list.push({ "s": oh, "p": "rdf:value", "o": oh + "literal" });
