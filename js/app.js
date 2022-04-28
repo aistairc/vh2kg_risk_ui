@@ -463,7 +463,7 @@ $(function() {
             update_edge_list.push({ "s": s, "p": "vh2kg:mainObject", "o": object });
             // // height
             nodes.add({ id: oh, label: oh_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            update_edge_list.push({ "s": s, "p": "vh2kg:height", "o": oh });
+            update_edge_list.push({ "s": object, "p": "vh2kg:height", "o": oh });
             // // unit
             nodes.add({ id: ohunit, label: ohunit_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
             edges.add({ from: oh, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
