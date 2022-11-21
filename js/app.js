@@ -87,6 +87,36 @@ $(function() {
         return false;
     }
 
+    function getEvent(video_name) {
+        let sparql = `
+        PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
+        PREFIX ho: <http://www.owl-ontologies.com/VirtualHome.owl#>
+        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+        SELECT DISTINCT ?ev WHERE {
+        ex:${video_name.toLowerCase()}_scene${scene} a ho:Activity ;
+    	    vh2kg:hasEvent ?ev .
+        }`;
+        $.getJSON(url, { "query": sparql }, function(data) {
+            let bindings = data.results.bindings;
+            let events = [];
+            $("#factor").empty();
+            for (i = 0; i < bindings.length; i++) {
+                let ev = bindings[i].ev.value;
+                ev = ev.replace("http://example.org/virtualhome2kg/instance/", "")
+                ev = ev.replace("_scene" + scene, "");
+                events.push(ev);
+                let li = $("<li></li>");
+                li.addClass("list-group-item");
+                li.addClass("risk-factor");
+                li.attr("video-name", video_name);
+                li.text(ev);
+                $("#factor").append(li);
+            }
+            return false;
+        });
+        return false;
+    }
+
     function getRiskFactor(video_name) {
         let sparql = `
         PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
@@ -198,12 +228,10 @@ $(function() {
         $("#factor").empty();
         let video_name = video.text();
         let blobURL = file_map[video_name];;
-        if (video.attr("risk")) {
-            if (!(video_name in activity_time_map)) {
-                getActivityTime(video_name);
-            }
-            getRiskFactor(video_name);
+        if (!(video_name in activity_time_map)) {
+            getActivityTime(video_name);
         }
+        getEvent(video_name);
         $("#view").html("<video id='video' src='" + blobURL + "' type='video/mp4' video-name=" + video_name + " controls>Sorry, your browser doesn't support embedded videos.</video>");
         return false;
     }
@@ -529,7 +557,7 @@ $(function() {
     });
 
     $(document).on("click", "#run", function(e) {
-        riskSearch();
+        //riskSearch();
         return false;
     });
 
