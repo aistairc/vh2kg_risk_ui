@@ -1,1 +1,6 @@
 .DS_Store
+rdf/affordance.ttl
+rdf/DoSomethingToHighPositionObject.ttl
+rdf/GrabLowPositionObject.ttl
+rdf/height.ttl
+rdf/HomeRiskActivityOntology.ttl

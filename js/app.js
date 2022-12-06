@@ -1,16 +1,16 @@
 $(function() {
-    const repository = "vh2kg_ieee_access_202204";
+    const repository = "KGRC4SIv0";
     const endpointURL = "http://localhost:7200/repositories/";
     const url = endpointURL + repository;
     const namespaces = {
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        "hra": "http://example.org/virtualhome2kg/ontology/homeriskactivity/",
         "an": "http://example.org/virtualhome2kg/ontology/action/",
         "vh2kg": "http://example.org/virtualhome2kg/ontology/",
         "ex": "http://example.org/virtualhome2kg/instance/",
         "ho": "http://www.owl-ontologies.com/VirtualHome.owl#",
         "time": "http://www.w3.org/2006/time#",
+        "x3do": "https://www.web3d.org/specifications/X3dOntology4.0#",
         "owl": "http://www.w3.org/2002/07/owl#"
     };
     var file_map = {};
@@ -117,66 +117,6 @@ $(function() {
         return false;
     }
 
-    function getRiskFactor(video_name) {
-        let sparql = `
-        PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
-        PREFIX ex: <http://example.org/virtualhome2kg/instance/>
-        SELECT DISTINCT ?risk_factor WHERE {
-        ex:${video_name.toLowerCase()}_scene${scene} a hra:RiskActivity ;
-    	    hra:riskFactor ?risk_factor .
-        }`;
-        $.getJSON(url, { "query": sparql }, function(data) {
-            let bindings = data.results.bindings;
-            let risk_factors = [];
-            $("#factor").empty();
-            for (i = 0; i < bindings.length; i++) {
-                let rf = bindings[i].risk_factor.value;
-                rf = rf.replace("http://example.org/virtualhome2kg/instance/", "")
-                rf = rf.replace("_scene" + scene, "");
-                risk_factors.push(rf);
-                let li = $("<li></li>");
-                li.addClass("list-group-item");
-                li.addClass("risk-factor");
-                li.attr("video-name", video_name);
-                li.text(rf);
-                $("#factor").append(li);
-            }
-            return false;
-        });
-        return false;
-    }
-
-    function highlight(risk_list) {
-        for (var risk_activity of risk_list) {
-            let risk_elem = $("#" + risk_activity);
-            risk_elem.css("background-color", "#FFFF00");
-            risk_elem.attr("risk", true);
-        }
-        return false;
-    }
-
-    function riskSearch() {
-        let sparql = `
-        PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
-        SELECT DISTINCT ?s WHERE {
-            ?s a hra:RiskActivity .
-        }`;
-        let url = endpointURL + repository + "?query=" + encodeURI(sparql);
-        $.getJSON(url, function(data) {
-            let bindings = data.results.bindings;
-            let risk_list = [];
-            for (i = 0; i < bindings.length; i++) {
-                let s = bindings[i].s.value;
-                s = s.replace("http://example.org/virtualhome2kg/instance/", "")
-                s = s.replace("_scene" + scene, "")
-                risk_list.push(s);
-            }
-            highlight(risk_list);
-            return false;
-        });
-        return false;
-    }
-
     function loadFiles(ev) {
         for (let i = 0; i < ev.target.files.length; i++) {
             let file = ev.target.files[i];
@@ -187,6 +127,8 @@ $(function() {
             fileReader.onload = (function(theFile) {
                 return function(e) {
                     let video_name = theFile.name.replace("1.mp4", "");
+                    //三人称視点は現時点では未対応
+                    if (video_name.includes("mp4")){return false;}
                     file_map[video_name] = URL.createObjectURL(theFile);
                     let li = document.createElement("li");
                     li.classList.add("list-group-item");
@@ -307,11 +249,7 @@ $(function() {
                 }
                 /* create edges */
                 if (oType == "uri") {
-                    if (p_label == "hra:riskFactor") {
-                        allEdges.push({ id: (s + p_label + o), from: s, to: o, label: p_label, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
-                    } else {
-                        allEdges.push({ id: (s + p_label + o), from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
-                    }
+                    allEdges.push({ id: (s + p_label + o), from: s, to: o, label: p_label, arrows: { to: { enabled: true } } });
                 } else {
                     allEdges.push({ id: (s + p_label + o), from: s, to: o + "literal", label: p_label, arrows: { to: { enabled: true } } });
                 }
@@ -418,9 +356,9 @@ $(function() {
             let edge = edges.get(edge_id)
             if (edge == null) {
                 // create edge
-                edges.add({ from: edge_dic.s, to: edge_dic.o, label: edge_dic.p, background: { enabled: true, color: "#ff0000", size: 8 }, arrows: { to: { enabled: true } } });
+                edges.add({ from: edge_dic.s, to: edge_dic.o, label: edge_dic.p, arrows: { to: { enabled: true } } });
             } else {
-                edge["background"] = { enabled: true, color: "#ff0000", size: 8 };
+                //edge["background"] = { enabled: true, color: "#ff0000", size: 8 };
                 console.log(edge);
                 update_list.push(edge);
             }
@@ -436,20 +374,12 @@ $(function() {
         PREFIX : <http://example.org/virtualhome2kg/ontology/>
         PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
         SELECT * WHERE {
-            ?s  a ?type ;
+            ?s  rdf:type/rdfs:subClassOf* :Event ;
                 :action ?action ;
                 :agent ?agent ;
                 :mainObject ?object ;
                 :situationBeforeEvent ?situation .
-            ?type rdfs:subClassOf hra:RiskEvent ;
-                rdfs:label ?riskLabel .
-            ?object :height ?oh .
-            ?agent :height ?ah .
-            ?oh rdf:value ?ohv ;
-                :unit ?ohunit .
-            ?ah rdf:value ?ahv .
             ?state :isStateOf ?object ;
                    :partOf ?situation ;
                    :bbox ?shape .
@@ -463,23 +393,14 @@ $(function() {
         } limit 1
         `;
         $.getJSON(url, { "query": sparql, "infer": false }, function(data) {
+            console.log(sparql);
             let bindings = data.results.bindings;
             let s = bindings[0].s.value;
-            let riskType = bindings[0].type.value;
-            let riskType_label = bindings[0].riskLabel.value;
             let action = bindings[0].action.value;
             let action_label = replace_prefix(action);
             let agent = bindings[0].agent.value;
-            let ah = bindings[0].ah.value;
-            let ah_label = replace_prefix(ah);
-            let ahv = bindings[0].ahv.value;
             let object = bindings[0].object.value;
             let object_label = replace_prefix(object);
-            let oh = bindings[0].oh.value;
-            let oh_label = replace_prefix(oh);
-            let ohv = bindings[0].ohv.value;
-            let ohunit = bindings[0].ohunit.value;
-            let ohunit_label = replace_prefix(ohunit);
             let state = bindings[0].state.value;
             let state_label = replace_prefix(state);
             let shape = bindings[0].shape.value;
@@ -493,24 +414,8 @@ $(function() {
             update_edge_list.push({ "s": s, "p": "vh2kg:action", "o": action });
             // agent
             update_edge_list.push({ "s": s, "p": "vh2kg:agent", "o": agent });
-            // agent height
-            nodes.add({ id: ah, label: ah_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            update_edge_list.push({ "s": agent, "p": "vh2kg:agent", "o": ah });
-            // agent height value
-            nodes.add({ id: ah + "literal", label: ahv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
-            update_edge_list.push({ "s": ah, "p": "rdf:value", "o": ah + "literal" });
             // object
             update_edge_list.push({ "s": s, "p": "vh2kg:mainObject", "o": object });
-            // height
-            nodes.add({ id: oh, label: oh_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            update_edge_list.push({ "s": object, "p": "vh2kg:height", "o": oh });
-            // unit
-            nodes.add({ id: ohunit, label: ohunit_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
-            edges.add({ from: oh, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
-            edges.add({ from: ah, to: ohunit, label: ohunit_label, arrows: { to: { enabled: true } } });
-            // height value
-            nodes.add({ id: oh + "literal", label: ohv, shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
-            update_edge_list.push({ "s": oh, "p": "rdf:value", "o": oh + "literal" });
             // state
             nodes.add({ id: state, label: state_label, size: 7, color: { border: "#2B7CE9", background: "#D2E5FF" } });
             update_edge_list.push({ "s": state, "p": "vh2kg:isStateOf", "o": object });
@@ -521,7 +426,6 @@ $(function() {
             nodes.add({ id: shape + "literal", label: "(" + cx + ", " + cy + ", " + cz + ")", shape: "box", color: { background: "rgba(255,255,255,0.7)" } });
             update_edge_list.push({ "s": shape, "p": "vh2kg:bboxCenter", "o": shape + "literal" });
             edge_highlight(update_edge_list);
-            $("#risk-type-of-event").html("(Risk type: <b>" + riskType_label + "</b>)");
             return false;
         });
     }
@@ -553,11 +457,6 @@ $(function() {
 
     $(document).on("change", "#file", function(ev) {
         loadFiles(ev);
-        return false;
-    });
-
-    $(document).on("click", "#run", function(e) {
-        //riskSearch();
         return false;
     });
 
