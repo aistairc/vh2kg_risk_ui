@@ -38,6 +38,8 @@ export type EventQueryType = {
   duration: Literal;
   action: NamedNode;
   number: Literal;
+  mainObject?: NamedNode;
+  mainObjectLabel?: Literal;
 };
 
 export const fetchEvent: (
@@ -52,12 +54,18 @@ export const fetchEvent: (
   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
   PREFIX time: <http://www.w3.org/2006/time#>
   PREFIX hra: <http://example.org/virtualhome2kg/ontology/homeriskactivity/>
-  select distinct ?event ?number ?action ?duration where { 
+  select distinct ?event ?number ?action ?duration ?mainObject ?mainObjectLabel where { 
     ${sceneUri} vh2kg:hasEvent ?event .
-      ?event vh2kg:time ?time .
-      ?event vh2kg:action ?action .
-      ?time time:numericDuration ?duration .
-      ?event vh2kg:eventNumber ?number .
+    ?event vh2kg:time ?time .
+    ?event vh2kg:action ?action .
+    ?time time:numericDuration ?duration .
+    ?event vh2kg:eventNumber ?number .
+    OPTIONAL {
+      ?event vh2kg:mainObject ?mainObject .
+      OPTIONAL {
+        ?mainObject rdfs:label ?mainObjectLabel .
+      }
+    }
   }`;
   const result = (await makeClient().query.select(
     eventQuery

@@ -144,58 +144,83 @@ const Home: NextPage = () => {
                         <TableCell>No.</TableCell>
                         <TableCell>Event URI</TableCell>
                         <TableCell>Action URI</TableCell>
+                        <TableCell>Object</TableCell>
                         <TableCell>Duration</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {events.map(({ event, number, action }, idx) => {
-                        const onClickButton = () => {
-                          if (video.current) {
-                            video.current.currentTime = durations[idx - 1] ?? 0;
-                          }
-                        };
-                        const ct = Math.round(currentTime * 100) / 100;
-                        const test =
-                          ct >=
-                            Math.round((durations[idx - 1] ?? 0) * 100) / 100 &&
-                          ct < Math.round(durations[idx] * 100) / 100;
-                        return (
-                          <TableRow
-                            key={idx}
-                            sx={{
-                              backgroundColor: test ? yellow[300] : undefined,
-                            }}
-                          >
-                            <TableCell>{Number(number.value) + 1} </TableCell>
-                            <TableCell>
-                              {event.value.replace(PREFIXES.ex, "ex:")}
-                            </TableCell>
-                            <TableCell>
-                              {action.value.replace(PREFIXES.vh2kg, "vh2kg:")}
-                            </TableCell>
-                            <TableCell
+                      {events.map(
+                        (
+                          {
+                            event,
+                            number,
+                            action,
+                            mainObject,
+                            mainObjectLabel,
+                          },
+                          idx
+                        ) => {
+                          const onClickButton = () => {
+                            if (video.current) {
+                              video.current.currentTime =
+                                durations[idx - 1] ?? 0;
+                            }
+                          };
+                          const ct = Math.round(currentTime * 100) / 100;
+                          const test =
+                            ct >=
+                              Math.round((durations[idx - 1] ?? 0) * 100) /
+                                100 &&
+                            ct < Math.round(durations[idx] * 100) / 100;
+                          return (
+                            <TableRow
+                              key={idx}
                               sx={{
-                                padding: "0",
-                                textAlign: "center",
-                                width: "120px",
+                                backgroundColor: test ? yellow[300] : undefined,
                               }}
                             >
-                              <Button
+                              <TableCell>{Number(number.value) + 1} </TableCell>
+                              <TableCell>
+                                {event.value.replace(PREFIXES.ex, "ex:")}
+                              </TableCell>
+                              <TableCell>
+                                {action.value.replace(PREFIXES.vh2kg, "vh2kg:")}
+                              </TableCell>
+                              <TableCell
                                 sx={{
                                   padding: "0",
                                 }}
-                                onClick={onClickButton}
                               >
-                                {`${
-                                  durations[idx - 1]
-                                    ? Math.round(durations[idx - 1] * 100) / 100
-                                    : 0
-                                } ~ ${Math.round(durations[idx] * 100) / 100}`}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                                {mainObjectLabel?.value ??
+                                  mainObject?.value.replace(PREFIXES.ex, "ex:")}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  padding: "0",
+                                  textAlign: "center",
+                                  width: "120px",
+                                }}
+                              >
+                                <Button
+                                  sx={{
+                                    padding: "0",
+                                  }}
+                                  onClick={onClickButton}
+                                >
+                                  {`${
+                                    durations[idx - 1]
+                                      ? Math.round(durations[idx - 1] * 100) /
+                                        100
+                                      : 0
+                                  } ~ ${
+                                    Math.round(durations[idx] * 100) / 100
+                                  }`}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
