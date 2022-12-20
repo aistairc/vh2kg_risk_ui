@@ -70,6 +70,5 @@ export const fetchEvent: (
   const result = (await makeClient().query.select(
     eventQuery
   )) as EventQueryType[];
-  console.log(result);
   return result;
 };

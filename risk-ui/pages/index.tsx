@@ -101,7 +101,7 @@ const Home: NextPage = () => {
         <InputLabel id="demo-simple-select-label">Videoを選択</InputLabel>
         <Select
           onChange={onChangeActivity}
-          value={activity?.activity.value}
+          value={activity?.activity.value ?? ""}
           labelId="demo-simple-select-label"
           id="demo-simple-select"
           label="Videoを選択"
