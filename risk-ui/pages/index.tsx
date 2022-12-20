@@ -4,7 +4,6 @@ import {
   InputLabel,
   FormControl,
   SelectChangeEvent,
-  Typography,
 } from "@mui/material";
 import {
   fetchActivity,
@@ -95,7 +94,6 @@ const Home: NextPage = () => {
   const onTimeUpdate = useCallback((e: ChangeEvent<HTMLVideoElement>) => {
     setCurrentTime(e.currentTarget.currentTime);
   }, []);
-  console.log(activity?.label.value);
 
   return (
     <div>
@@ -144,14 +142,13 @@ const Home: NextPage = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell>No.</TableCell>
-                        <TableCell>URI</TableCell>
-                        <TableCell>Action</TableCell>
+                        <TableCell>Event URI</TableCell>
+                        <TableCell>Action URI</TableCell>
                         <TableCell>Duration</TableCell>
-                        <TableCell>Risk</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {events.map(({ event, number, action, risk }, idx) => {
+                      {events.map(({ event, number, action }, idx) => {
                         const onClickButton = () => {
                           if (video.current) {
                             video.current.currentTime = durations[idx - 1] ?? 0;
@@ -195,24 +192,6 @@ const Home: NextPage = () => {
                                     : 0
                                 } ~ ${Math.round(durations[idx] * 100) / 100}`}
                               </Button>
-                            </TableCell>
-                            <TableCell
-                              sx={({ palette }) => {
-                                return {
-                                  color: palette.error.light,
-                                };
-                              }}
-                            >
-                              {risk && (
-                                <Tooltip
-                                  title={risk.value.replace(
-                                    PREFIXES.hra,
-                                    "hra:"
-                                  )}
-                                >
-                                  <Typography>Risk</Typography>
-                                </Tooltip>
-                              )}
                             </TableCell>
                           </TableRow>
                         );
