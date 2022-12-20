@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "sparql-http-client": "^2.4.1"
-  },
-  "devDependencies": {
-    "@types/sparql-http-client": "^2.2.8"
-  }
-}
