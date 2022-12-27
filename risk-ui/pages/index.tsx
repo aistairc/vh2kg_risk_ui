@@ -11,6 +11,7 @@ import {
   fetchEvent,
   PREFIXES,
   EventQueryType,
+  fetchState,
 } from "../utils/sparql";
 import type { NextPage } from "next";
 import {
@@ -46,13 +47,10 @@ const Home: NextPage = () => {
 
   const [events, setEvents] = useState<EventQueryType[]>([]);
   const [durations, setDurations] = useState<number[]>([]);
-
   useEffect(() => {
     if (activity) {
       (async () => {
-        const result = await fetchEvent(
-          activity.activity.value.replace(PREFIXES.ex, "ex:")
-        );
+        const result = await fetchEvent(activity.activity);
         result.sort((a, b) => {
           return Number(a.number.value) > Number(b.number.value) ? 1 : -1;
         });
@@ -67,8 +65,13 @@ const Home: NextPage = () => {
           durations.push(value);
           before = value;
         }
+        console.log("events: ", result);
         setEvents(result);
         setDurations(durations);
+      })();
+      (async () => {
+        const result = await fetchState(activity.activity);
+        console.log("state", result);
       })();
     }
   }, [activity]);
