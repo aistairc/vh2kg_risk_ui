@@ -12,6 +12,7 @@ import {
   PREFIXES,
   EventQueryType,
   fetchState,
+  StateObject,
 } from "../utils/sparql";
 import type { NextPage } from "next";
 import {
@@ -31,9 +32,9 @@ import {
   TableCell,
   Button,
   TableContainer,
-  Tooltip,
 } from "@mui/material";
 import { yellow } from "@mui/material/colors";
+import { ObjectTable } from "../components/ObjectTable";
 const Home: NextPage = () => {
   useEffect(() => {
     (async () => {
@@ -46,6 +47,7 @@ const Home: NextPage = () => {
   const [activity, setActivity] = useState<ActivityQueryType | undefined>();
 
   const [events, setEvents] = useState<EventQueryType[]>([]);
+  const [states, setStates] = useState<{ [key: string]: StateObject[] }>({});
   const [durations, setDurations] = useState<number[]>([]);
   useEffect(() => {
     if (activity) {
@@ -72,6 +74,7 @@ const Home: NextPage = () => {
       (async () => {
         const result = await fetchState(activity.activity);
         console.log("state", result);
+        setStates(result);
       })();
     }
   }, [activity]);
@@ -232,6 +235,7 @@ const Home: NextPage = () => {
           </>
         )}
       </Box>
+      <ObjectTable data={states} situationNumber={0} />
     </div>
   );
 };

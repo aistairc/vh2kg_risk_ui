@@ -175,11 +175,11 @@ export const fetchState = async (
       objectsQuery
     )) as ObjectStateQueryType[];
     for (const row of result) {
-      if (!(row.object.value in data)) {
-        data[row.object.value] = [];
+      if (!(row.object.value.replace(PREFIXES.ex, "ex:") in data)) {
+        data[row.object.value.replace(PREFIXES.ex, "ex:")] = [];
       }
-      data[row.object.value].push({
-        object: row.object.value,
+      data[row.object.value.replace(PREFIXES.ex, "ex:")].push({
+        object: row.object.value.replace(PREFIXES.ex, "ex:"),
         state: new Set(),
         inside: new Set(),
         facing: new Set(),
@@ -214,7 +214,9 @@ export const fetchState = async (
         stateQuery
       )) as StateQueryType[];
       for (const row of result) {
-        data[row.object.value][situationNumber].state.add(row.state.value);
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].state.add(row.state.value.replace(PREFIXES.vh2kg, "vh2kg:"));
       }
     }
 
@@ -240,7 +242,9 @@ export const fetchState = async (
         facingQuery
       )) as FacingQueryType[];
       for (const row of result) {
-        data[row.object.value][situationNumber].facing.add(row.facing.value);
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].facing.add(row.facing.value.replace(PREFIXES.ex, "ex:"));
       }
     }
     {
@@ -265,7 +269,9 @@ export const fetchState = async (
         insideQuery
       )) as InsideQueryType[];
       for (const row of result) {
-        data[row.object.value][situationNumber].inside.add(row.inside.value);
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].inside.add(row.inside.value.replace(PREFIXES.ex, "ex:"));
       }
     }
 
@@ -291,7 +297,9 @@ export const fetchState = async (
         onQuery
       )) as OnQueryType[];
       for (const row of result) {
-        data[row.object.value][situationNumber].on.add(row.on.value);
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].on.add(row.on.value.replace(PREFIXES.ex, "ex:"));
       }
     }
 
@@ -305,12 +313,8 @@ export const isEqurlState = (a: StateObject, b: StateObject): boolean => {
   if (
     a.object === b.object &&
     isEqual(a.state, b.state) &&
-    a.center.x === b.center.x &&
-    a.center.y === b.center.y &&
-    a.center.z === b.center.z &&
-    a.size.x === b.size.x &&
-    a.size.y === b.size.y &&
-    a.size.z === b.size.z &&
+    isEqual(a.center, b.center) &&
+    isEqual(a.size, b.size) &&
     isEqual(a.facing, b.facing) &&
     isEqual(a.inside, b.inside) &&
     isEqual(a.on, b.on)
