@@ -27,7 +27,7 @@ import {
   TableContainer,
 } from "@mui/material";
 import { yellow } from "@mui/material/colors";
-import { useObjectTable } from "../components/ObjectTable";
+import { ObjectTable } from "../components/ObjectTable";
 const Home: NextPage = () => {
   useEffect(() => {
     (async () => {
@@ -42,6 +42,14 @@ const Home: NextPage = () => {
   const [events, setEvents] = useState<EventQueryType[]>([]);
   const [states, setStates] = useState<{ [key: string]: StateObject[] }>({});
   const [durations, setDurations] = useState<number[]>([]);
+
+  const targets = useMemo(() => {
+    return events
+      .filter((e) => e.mainObject)
+      .map((e) => {
+        return e.mainObject?.value.replace(PREFIXES.ex, "ex:") ?? "";
+      });
+  }, [events]);
   useEffect(() => {
     if (activity) {
       (async () => {
@@ -109,14 +117,6 @@ const Home: NextPage = () => {
       setVideoDuration(e.currentTarget.duration);
     },
     []
-  );
-
-  const { component } = useObjectTable(
-    states,
-    durations,
-    currentTime,
-    videoDuration,
-    setCurrentTime
   );
 
   const updateCurrent = useCallback(() => {
@@ -282,7 +282,14 @@ const Home: NextPage = () => {
           </>
         )}
       </Box>
-      {component}
+      <ObjectTable
+        data={states}
+        durations={durations}
+        currentTime={currentTime}
+        videoDuration={videoDuration}
+        onChangeCurrentTime={setCurrentTime}
+        targets={targets}
+      />
     </div>
   );
 };

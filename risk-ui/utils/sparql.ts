@@ -418,21 +418,71 @@ export const fetchState = async (
   return data;
 };
 
-export const isEqurlState = (a: StateObject, b: StateObject): boolean => {
-  if (
-    a.object === b.object &&
-    isEqual(a.close, b.close) &&
-    isEqual(a.state, b.state) &&
-    isEqual(a.center, b.center) &&
-    isEqual(a.size, b.size) &&
-    isEqual(a.facing, b.facing) &&
-    isEqual(a.inside, b.inside) &&
-    isEqual(a.on, b.on) &&
-    isEqual(a.between, b.between) &&
-    isEqual(a.holdsLh, b.holdsLh) &&
-    isEqual(a.holdsRh, b.holdsRh)
-  ) {
-    return true;
+// centerとsizeは保留
+export type StateItemType = {
+  [key in keyof Omit<StateObject, "object" | "center" | "size">]:
+    | boolean
+    | undefined;
+};
+
+export const isEqurlState = (
+  a: StateObject,
+  b: StateObject,
+  items: StateItemType
+): boolean => {
+  if (a.object !== b.object) {
+    return false;
   }
-  return false;
+
+  const keys: (keyof StateObject)[] = Object.entries(items)
+    .filter(([_key, val]) => val)
+    .map(([key]) => key) as (keyof StateObject)[];
+  for (const key of keys) {
+    if (!isEqual(a[key], b[key])) {
+      return false;
+    }
+  }
+  return true;
+};
+
+type SequenceReduceType = {
+  state: StateObject | null;
+  score: number;
+};
+
+export const calcDiffScoreWithKey = (
+  sequence: StateObject[],
+  key: keyof StateObject
+) => {
+  const result = sequence.reduce<SequenceReduceType>(
+    (prev, cur) => {
+      if (prev.state) {
+        prev.score += !isEqual(prev.state[key], cur[key]) ? 1 : 0;
+      }
+      prev.state = cur;
+      return prev;
+    },
+    {
+      state: null,
+      score: 0,
+    }
+  );
+  return result.score;
+};
+
+export type DiffScoreType = {
+  [key in keyof Omit<StateObject, "object" | "center" | "size">]: number;
+};
+
+export const calcDiffScore = (sequence: StateObject[]): DiffScoreType => {
+  return {
+    close: calcDiffScoreWithKey(sequence, "close"),
+    state: calcDiffScoreWithKey(sequence, "state"),
+    facing: calcDiffScoreWithKey(sequence, "facing"),
+    inside: calcDiffScoreWithKey(sequence, "inside"),
+    on: calcDiffScoreWithKey(sequence, "on"),
+    between: calcDiffScoreWithKey(sequence, "between"),
+    holdsLh: calcDiffScoreWithKey(sequence, "holdsLh"),
+    holdsRh: calcDiffScoreWithKey(sequence, "holdsRh"),
+  };
 };
