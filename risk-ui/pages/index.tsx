@@ -15,14 +15,7 @@ import {
   StateObject,
 } from "../utils/sparql";
 import type { NextPage } from "next";
-import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   Box,
@@ -34,7 +27,7 @@ import {
   TableContainer,
 } from "@mui/material";
 import { yellow } from "@mui/material/colors";
-import { ObjectTable } from "../components/ObjectTable";
+import { useObjectTable } from "../components/ObjectTable";
 const Home: NextPage = () => {
   useEffect(() => {
     (async () => {
@@ -67,19 +60,26 @@ const Home: NextPage = () => {
           durations.push(value);
           before = value;
         }
-        console.log("events: ", result);
         setEvents(result);
         setDurations(durations);
       })();
       (async () => {
         const result = await fetchState(activity.activity);
-        console.log("state", result);
         setStates(result);
       })();
     }
   }, [activity]);
 
   const video = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const onPlay = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
+
+  const onPause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
   const onChangeActivity = useCallback(
     (e: SelectChangeEvent<string>) => {
       const a = activities.filter(
@@ -97,9 +97,54 @@ const Home: NextPage = () => {
   }, [activity]);
 
   const [currentTime, setCurrentTime] = useState(0);
-  const onTimeUpdate = useCallback((e: ChangeEvent<HTMLVideoElement>) => {
-    setCurrentTime(e.currentTarget.currentTime);
-  }, []);
+  useEffect(() => {
+    if (video.current && !isPlaying) {
+      video.current.currentTime = currentTime;
+    }
+  }, [currentTime, isPlaying]);
+
+  const [videoDuration, setVideoDuration] = useState(0);
+  const onLoadVideo: React.ReactEventHandler<HTMLVideoElement> = useCallback(
+    (e) => {
+      setVideoDuration(e.currentTarget.duration);
+    },
+    []
+  );
+
+  const { component } = useObjectTable(
+    states,
+    durations,
+    currentTime,
+    videoDuration,
+    setCurrentTime
+  );
+
+  const updateCurrent = useCallback(() => {
+    if (video.current) {
+      if (isPlaying) {
+        setCurrentTime(video.current.currentTime);
+      }
+    }
+  }, [isPlaying]);
+
+  const seekingUpdate: React.ReactEventHandler<HTMLVideoElement> = useCallback(
+    (e) => {
+      if (isPlaying) {
+        setCurrentTime(e.currentTarget.currentTime);
+      }
+    },
+    [isPlaying]
+  );
+
+  useEffect(() => {
+    if (isPlaying) {
+      const timer = setInterval(updateCurrent, 1 / 30);
+      return () => {
+        clearInterval(timer);
+      };
+    }
+    return () => {};
+  }, [isPlaying, updateCurrent]);
 
   return (
     <div>
@@ -127,21 +172,27 @@ const Home: NextPage = () => {
           gap: "16px",
         }}
         marginTop="16px"
+        height="300px"
       >
         {videoFile && (
           <>
             <video
               controls
-              width="50%"
+              style={{
+                flex: 1,
+              }}
               ref={video}
-              onTimeUpdate={onTimeUpdate}
+              onPlay={onPlay}
+              onPause={onPause}
+              onLoadedData={onLoadVideo}
+              onSeeking={seekingUpdate}
               src={`/video/${videoFile}`}
             />
-            <Box>
+            <Box flex="2">
               {events ? (
                 <TableContainer
                   sx={{
-                    height: "414px",
+                    height: "100%",
                   }}
                 >
                   <Table>
@@ -167,10 +218,7 @@ const Home: NextPage = () => {
                           idx
                         ) => {
                           const onClickButton = () => {
-                            if (video.current) {
-                              video.current.currentTime =
-                                durations[idx - 1] ?? 0;
-                            }
+                            setCurrentTime(durations[idx - 1 ?? 0]);
                           };
                           const ct = Math.round(currentTime * 100) / 100;
                           const test =
@@ -204,7 +252,6 @@ const Home: NextPage = () => {
                                 sx={{
                                   padding: "0",
                                   textAlign: "center",
-                                  width: "120px",
                                 }}
                               >
                                 <Button
@@ -235,7 +282,7 @@ const Home: NextPage = () => {
           </>
         )}
       </Box>
-      <ObjectTable data={states} situationNumber={0} />
+      {component}
     </div>
   );
 };

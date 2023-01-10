@@ -88,22 +88,9 @@ type ObjectStateQueryType = {
   size3: Literal;
 };
 
-type StateQueryType = {
+type TargetQueryType = {
   object: NamedNode;
-  state: NamedNode;
-};
-
-type FacingQueryType = {
-  object: NamedNode;
-  facing: NamedNode;
-};
-type OnQueryType = {
-  object: NamedNode;
-  on: NamedNode;
-};
-type InsideQueryType = {
-  object: NamedNode;
-  inside: NamedNode;
+  target: NamedNode;
 };
 
 export type Vec3f = {
@@ -118,6 +105,10 @@ export type StateObject = {
   facing: Set<string>;
   inside: Set<string>;
   on: Set<string>;
+  between: Set<string>;
+  holdsLh: Set<string>;
+  holdsRh: Set<string>;
+  close: Set<string>;
   center: Vec3f;
   size: Vec3f;
 };
@@ -142,9 +133,11 @@ export const fetchState = async (
   const result = (await makeClient().query.select(
     situationQuery
   )) as SituationQueryType[];
+
   const data: { [key: string]: StateObject[] } = {};
   let situationNumber = 0;
   for (const situation of result) {
+    console.log(">>>>", situation.situation.value);
     const objectsQuery = `
       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
       PREFIX ex: <http://example.org/virtualhome2kg/instance/>
@@ -184,6 +177,10 @@ export const fetchState = async (
         inside: new Set(),
         facing: new Set(),
         on: new Set(),
+        between: new Set(),
+        holdsLh: new Set(),
+        holdsRh: new Set(),
+        close: new Set(),
         center: {
           x: Number(row.center1.value),
           y: Number(row.center2.value),
@@ -203,20 +200,20 @@ export const fetchState = async (
         PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
         PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
         
-        select distinct ?s ?object ?state where { 
+        select distinct ?s ?object ?target where { 
           ?s ?p <${situation.situation.value}> .
             ?s a vh2kg:State .
             ?s vh2kg:isStateOf ?object .
-            ?s vh2kg:state ?state .
+            ?s vh2kg:state ?target .
         } limit 10000`;
 
       const result = (await makeClient().query.select(
         stateQuery
-      )) as StateQueryType[];
+      )) as TargetQueryType[];
       for (const row of result) {
         data[row.object.value.replace(PREFIXES.ex, "ex:")][
           situationNumber
-        ].state.add(row.state.value.replace(PREFIXES.vh2kg, "vh2kg:"));
+        ].state.add(row.target.value.replace(PREFIXES.vh2kg, "vh2kg:"));
       }
     }
 
@@ -227,24 +224,24 @@ export const fetchState = async (
       PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
       PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
       
-      select distinct ?s ?object ?facing where { 
-        ?s ?p <http://example.org/virtualhome2kg/instance/home_situation0_wash_pillow_scene1> .
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
           ?s a vh2kg:State .
           ?s vh2kg:isStateOf ?object .
           ?s vh2kg:bbox ?bbox .
-          ?bbox vh2kg:facing ?facingShape .
-          ?facingState vh2kg:bbox ?facingShape .
-          ?facingState vh2kg:isStateOf ?facing .
+          ?bbox vh2kg:facing ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
       } limit 10000
       `;
 
       const result = (await makeClient().query.select(
         facingQuery
-      )) as FacingQueryType[];
+      )) as TargetQueryType[];
       for (const row of result) {
         data[row.object.value.replace(PREFIXES.ex, "ex:")][
           situationNumber
-        ].facing.add(row.facing.value.replace(PREFIXES.ex, "ex:"));
+        ].facing.add(row.target.value.replace(PREFIXES.ex, "ex:"));
       }
     }
     {
@@ -254,24 +251,24 @@ export const fetchState = async (
       PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
       PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
       
-      select distinct ?s ?object ?inside where { 
-        ?s ?p <http://example.org/virtualhome2kg/instance/home_situation0_wash_pillow_scene1> .
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
           ?s a vh2kg:State .
           ?s vh2kg:isStateOf ?object .
           ?s vh2kg:bbox ?bbox .
-          ?bbox vh2kg:inside ?insideShape .
-          ?insideState vh2kg:bbox ?insideShape .
-          ?insideState vh2kg:isStateOf ?inside .
+          ?bbox vh2kg:inside ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
       } limit 10000
       `;
 
       const result = (await makeClient().query.select(
         insideQuery
-      )) as InsideQueryType[];
+      )) as TargetQueryType[];
       for (const row of result) {
         data[row.object.value.replace(PREFIXES.ex, "ex:")][
           situationNumber
-        ].inside.add(row.inside.value.replace(PREFIXES.ex, "ex:"));
+        ].inside.add(row.target.value.replace(PREFIXES.ex, "ex:"));
       }
     }
 
@@ -282,24 +279,136 @@ export const fetchState = async (
       PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
       PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
       
-      select distinct ?s ?object ?on where { 
-        ?s ?p <http://example.org/virtualhome2kg/instance/home_situation0_wash_pillow_scene1> .
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
           ?s a vh2kg:State .
           ?s vh2kg:isStateOf ?object .
           ?s vh2kg:bbox ?bbox .
-          ?bbox vh2kg:on ?onShape .
-          ?onState vh2kg:bbox ?onShape .
-          ?onState vh2kg:isStateOf ?on .
+          ?bbox vh2kg:on ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
       } limit 10000
       `;
 
       const result = (await makeClient().query.select(
         onQuery
-      )) as OnQueryType[];
+      )) as TargetQueryType[];
       for (const row of result) {
         data[row.object.value.replace(PREFIXES.ex, "ex:")][
           situationNumber
-        ].on.add(row.on.value.replace(PREFIXES.ex, "ex:"));
+        ].on.add(row.target.value.replace(PREFIXES.ex, "ex:"));
+      }
+    }
+
+    {
+      const betweenQuery = `
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+      PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
+      PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+      
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
+          ?s a vh2kg:State .
+          ?s vh2kg:isStateOf ?object .
+          ?s vh2kg:bbox ?bbox .
+          ?bbox vh2kg:between ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?shape vh2kg:isStateOf ?target .
+      } limit 10000
+      `;
+
+      const result = (await makeClient().query.select(
+        betweenQuery
+      )) as TargetQueryType[];
+      for (const row of result) {
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].between.add(row.target.value.replace(PREFIXES.ex, "ex:"));
+      }
+    }
+
+    {
+      const holdLhQuery = `
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+      PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
+      PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+      
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
+          ?s a vh2kg:State .
+          ?s vh2kg:isStateOf ?object .
+          ?s vh2kg:bbox ?bbox .
+          ?bbox vh2kg:holds_lh ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
+      } limit 10000
+      `;
+
+      const result = (await makeClient().query.select(
+        holdLhQuery
+      )) as TargetQueryType[];
+      for (const row of result) {
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].holdsLh.add(row.target.value.replace(PREFIXES.ex, "ex:"));
+      }
+    }
+
+    {
+      const holdRhQuery = `
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+      PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
+      PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+      
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
+          ?s a vh2kg:State .
+          ?s vh2kg:isStateOf ?object .
+          ?s vh2kg:bbox ?bbox .
+          ?bbox vh2kg:holds_rh ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
+      } limit 10000
+      `;
+
+      const result = (await makeClient().query.select(
+        holdRhQuery
+      )) as TargetQueryType[];
+      for (const row of result) {
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].holdsRh.add(row.target.value.replace(PREFIXES.ex, "ex:"));
+      }
+    }
+
+    {
+      const closeQuery = `
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX ex: <http://example.org/virtualhome2kg/instance/>
+      PREFIX vh2kg: <http://example.org/virtualhome2kg/ontology/>
+      PREFIX x3do: <https://www.web3d.org/specifications/X3dOntology4.0#>
+      
+      select distinct ?s ?object ?target where { 
+        ?s ?p <${situation.situation.value}> .
+          ?s a vh2kg:State .
+          ?s vh2kg:isStateOf ?object .
+          ?s vh2kg:bbox ?bbox .
+          ?bbox vh2kg:close ?shape .
+          ?state vh2kg:bbox ?shape .
+          ?state vh2kg:isStateOf ?target .
+      } limit 10000
+      `;
+
+      const result = (await makeClient().query.select(
+        closeQuery
+      )) as TargetQueryType[];
+      for (const row of result) {
+        data[row.object.value.replace(PREFIXES.ex, "ex:")][
+          situationNumber
+        ].close.add(row.target.value.replace(PREFIXES.ex, "ex:"));
       }
     }
 
@@ -312,12 +421,16 @@ export const fetchState = async (
 export const isEqurlState = (a: StateObject, b: StateObject): boolean => {
   if (
     a.object === b.object &&
+    isEqual(a.close, b.close) &&
     isEqual(a.state, b.state) &&
     isEqual(a.center, b.center) &&
     isEqual(a.size, b.size) &&
     isEqual(a.facing, b.facing) &&
     isEqual(a.inside, b.inside) &&
-    isEqual(a.on, b.on)
+    isEqual(a.on, b.on) &&
+    isEqual(a.between, b.between) &&
+    isEqual(a.holdsLh, b.holdsLh) &&
+    isEqual(a.holdsRh, b.holdsRh)
   ) {
     return true;
   }
