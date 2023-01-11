@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   calcDiffScore,
   DiffScoreType,
@@ -23,7 +23,10 @@ import {
   OutlinedInput,
   InputLabel,
   FormControl,
+  InputBase,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 
 import { yellow } from "@mui/material/colors";
 
@@ -115,8 +118,9 @@ export const ObjectTable: React.FC<{
     holdsLh: true,
     holdsRh: true,
   });
+  const [searchText, setSearchText] = useState<string[]>([]);
 
-  const rows = useMemo(() => {
+  const _rows = useMemo(() => {
     const rows = Object.values(data);
 
     // 全てのオブジェクトを表示
@@ -148,6 +152,20 @@ export const ObjectTable: React.FC<{
       return false;
     });
   }, [data, filterValues, showItems, targets]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchText.length) {
+      return _rows;
+    }
+    return _rows.filter((situations) => {
+      for (const word of searchText) {
+        if (!situations[0].object.includes(word)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [_rows, searchText]);
 
   const diffScore: { [key: string]: DiffScoreType } = useMemo(() => {
     const result = Object.entries(data).reduce<{
@@ -228,6 +246,13 @@ export const ObjectTable: React.FC<{
     setShowItems({ ...DefaultShowItem, ...items });
   }, []);
 
+  const onChangeSearchText = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchText(e.target.value.split(" ").filter((w) => w.length));
+    },
+    []
+  );
+
   if (!durations.length) {
     return null;
   }
@@ -304,6 +329,19 @@ export const ObjectTable: React.FC<{
           })}
         </Select>
       </FormControl>
+      <FormControl sx={{ m: 1 }}>
+        <InputLabel htmlFor="outlined-search">Search</InputLabel>
+        <OutlinedInput
+          id="outlined-search"
+          startAdornment={
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          }
+          label="Search"
+          onChange={onChangeSearchText}
+        />
+      </FormControl>
       <TableContainer sx={{ width: "100%" }}>
         <Table>
           <TableHead>
@@ -321,7 +359,7 @@ export const ObjectTable: React.FC<{
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((val, index) => {
+            {filteredRows.map((val, index) => {
               const {
                 object,
                 state,
