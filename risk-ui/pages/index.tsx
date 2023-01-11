@@ -44,11 +44,20 @@ const Home: NextPage = () => {
   const [durations, setDurations] = useState<number[]>([]);
 
   const targets = useMemo(() => {
-    return events
+    const ts = events
       .filter((e) => e.mainObject)
-      .map((e) => {
-        return e.mainObject?.value.replace(PREFIXES.ex, "ex:") ?? "";
+      .flatMap((e) => {
+        const values: string[] = [];
+        if (e.mainObject) {
+          values.push(e.mainObject.value.replace(PREFIXES.ex, "ex:"));
+        }
+        if (e.targetObject) {
+          values.push(e.targetObject.value.replace(PREFIXES.ex, "ex:"));
+        }
+        return values;
       });
+    console.log("ts", ts);
+    return ts;
   }, [events]);
   useEffect(() => {
     if (activity) {
@@ -201,7 +210,8 @@ const Home: NextPage = () => {
                         <TableCell>No.</TableCell>
                         <TableCell>Event URI</TableCell>
                         <TableCell>Action URI</TableCell>
-                        <TableCell>Object</TableCell>
+                        <TableCell>Main object</TableCell>
+                        <TableCell>Target object</TableCell>
                         <TableCell>Duration</TableCell>
                       </TableRow>
                     </TableHead>
@@ -214,6 +224,8 @@ const Home: NextPage = () => {
                             action,
                             mainObject,
                             mainObjectLabel,
+                            targetObject,
+                            targetObjectLabel,
                           },
                           idx
                         ) => {
@@ -247,6 +259,17 @@ const Home: NextPage = () => {
                               >
                                 {mainObjectLabel?.value ??
                                   mainObject?.value.replace(PREFIXES.ex, "ex:")}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  padding: "0",
+                                }}
+                              >
+                                {targetObjectLabel?.value ??
+                                  targetObject?.value.replace(
+                                    PREFIXES.ex,
+                                    "ex:"
+                                  )}
                               </TableCell>
                               <TableCell
                                 sx={{
