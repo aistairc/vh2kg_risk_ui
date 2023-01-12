@@ -102,7 +102,13 @@ const Home: NextPage = () => {
       const a = activities.filter(
         (v) => v.activity.value === e.target.value
       )[0];
+
       setActivity(a);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setStates({});
+      setEvents([]);
+      setDurations([]);
     },
     [activities]
   );

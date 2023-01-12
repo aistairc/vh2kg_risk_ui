@@ -23,7 +23,6 @@ import {
   OutlinedInput,
   InputLabel,
   FormControl,
-  InputBase,
   InputAdornment,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -72,6 +71,17 @@ const diffScoreToColor = (score: number) => {
 };
 
 const DefaultShowItem = {
+  state: true,
+  close: true,
+  inside: true,
+  on: true,
+  facing: true,
+  between: true,
+  holdsLh: true,
+  holdsRh: true,
+};
+
+const FalseShowItem = {
   state: false,
   close: false,
   inside: false,
@@ -108,20 +118,23 @@ export const ObjectTable: React.FC<{
     return 0;
   }, [currentTime, durations]);
 
-  const [showItems, setShowItems] = useState<StateItemType>({
-    state: true,
-    close: true,
-    inside: true,
-    on: true,
-    facing: true,
-    between: true,
-    holdsLh: true,
-    holdsRh: true,
-  });
+  const [showItems, setShowItems] = useState<StateItemType>(DefaultShowItem);
   const [searchText, setSearchText] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (Object.values(data).length === 0) {
+      setShowItems(DefaultShowItem);
+      setFilterValues([filterItems[2]]);
+      setSearchText([]);
+    }
+  }, [data]);
 
   const _rows = useMemo(() => {
     const rows = Object.values(data);
+    console.log("rows.length", rows.length);
+    if (!rows.length) {
+      return [];
+    }
 
     // 全てのオブジェクトを表示
     if (filterValues.includes(filterItems[3])) {
@@ -225,7 +238,7 @@ export const ObjectTable: React.FC<{
       return [attributes, maxMargin + 20];
     }, [durations, videoDuration]);
 
-  const onChange = useCallback(
+  const onChangeSlider = useCallback(
     (_: Event, val: number | number[]) => {
       onChangeCurrentTime(val as number);
     },
@@ -243,7 +256,7 @@ export const ObjectTable: React.FC<{
       return prev;
     }, {} as StateItemType);
 
-    setShowItems({ ...DefaultShowItem, ...items });
+    setShowItems({ ...FalseShowItem, ...items });
   }, []);
 
   const onChangeSearchText = useCallback(
@@ -287,7 +300,7 @@ export const ObjectTable: React.FC<{
           ...zurasu,
         }}
         value={currentTime}
-        onChange={onChange}
+        onChange={onChangeSlider}
       />
       <FormControl sx={{ m: 1, width: 300 }}>
         <InputLabel id="show-item-select-label">表示する項目</InputLabel>
