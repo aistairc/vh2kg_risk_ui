@@ -121,11 +121,14 @@ export const ObjectTable: React.FC<{
   const [showItems, setShowItems] = useState<StateItemType>(DefaultShowItem);
   const [searchText, setSearchText] = useState<string[]>([]);
 
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+
   useEffect(() => {
     if (Object.values(data).length === 0) {
       setShowItems(DefaultShowItem);
       setFilterValues([filterItems[2]]);
       setSearchText([]);
+      setSelectedRow(null);
     }
   }, [data]);
 
@@ -384,8 +387,16 @@ export const ObjectTable: React.FC<{
                 holdsRh,
               } = val[situationNumber];
               const score = diffScore[object];
+              const onClick = () => {
+                setSelectedRow(object);
+              };
               return (
-                <TableRow key={index}>
+                <TableRow
+                  key={index}
+                  onClick={onClick}
+                  selected={selectedRow === object}
+                  hover
+                >
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{object}</TableCell>
                   {showItems.state && (
