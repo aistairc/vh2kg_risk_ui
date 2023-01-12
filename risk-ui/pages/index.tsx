@@ -56,7 +56,6 @@ const Home: NextPage = () => {
         }
         return values;
       });
-    console.log("ts", ts);
     return ts;
   }, [events]);
   useEffect(() => {

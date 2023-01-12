@@ -131,7 +131,6 @@ export const ObjectTable: React.FC<{
 
   const _rows = useMemo(() => {
     const rows = Object.values(data);
-    console.log("rows.length", rows.length);
     if (!rows.length) {
       return [];
     }
