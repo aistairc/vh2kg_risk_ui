@@ -28,6 +28,15 @@ import {
 } from "@mui/material";
 import { yellow } from "@mui/material/colors";
 import { ObjectTable } from "../components/ObjectTable";
+import dynamic from "next/dynamic";
+
+const Graph = dynamic(() => import("../components/KnowladgeGraph"), {
+  ssr: false,
+  loading: ({ error, isLoading, pastDelay }) => {
+    return <>loading</>;
+  },
+});
+
 const Home: NextPage = () => {
   useEffect(() => {
     (async () => {
@@ -42,6 +51,8 @@ const Home: NextPage = () => {
   const [events, setEvents] = useState<EventQueryType[]>([]);
   const [states, setStates] = useState<{ [key: string]: StateObject[] }>({});
   const [durations, setDurations] = useState<number[]>([]);
+
+  const [mode, setShowMode] = useState<"table" | "graph">("table");
 
   const targets = useMemo(() => {
     const ts = events
@@ -159,6 +170,14 @@ const Home: NextPage = () => {
     }
     return () => {};
   }, [isPlaying, updateCurrent]);
+
+  const onClickTable = useCallback(() => {
+    setShowMode("table");
+  }, []);
+
+  const onClickKGraph = useCallback(() => {
+    setShowMode("graph");
+  }, []);
 
   return (
     <div>
@@ -310,14 +329,24 @@ const Home: NextPage = () => {
           </>
         )}
       </Box>
-      <ObjectTable
-        data={states}
-        durations={durations}
-        currentTime={currentTime}
-        videoDuration={videoDuration}
-        onChangeCurrentTime={setCurrentTime}
-        targets={targets}
-      />
+      {videoFile && (
+        <Box>
+          <Button onClick={onClickTable}>オブジェクト一覧表示</Button>
+          <Button onClick={onClickKGraph}>ナレッジグラフ表示</Button>
+        </Box>
+      )}
+      {mode === "table" ? (
+        <ObjectTable
+          data={states}
+          durations={durations}
+          currentTime={currentTime}
+          videoDuration={videoDuration}
+          onChangeCurrentTime={setCurrentTime}
+          targets={targets}
+        />
+      ) : (
+        <Graph />
+      )}
     </div>
   );
 };

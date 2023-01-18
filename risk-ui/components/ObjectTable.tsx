@@ -392,7 +392,7 @@ export const ObjectTable: React.FC<{
               };
               return (
                 <TableRow
-                  key={index}
+                  key={object}
                   onClick={onClick}
                   selected={selectedRow === object}
                   hover
