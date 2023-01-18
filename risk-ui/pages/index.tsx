@@ -32,8 +32,8 @@ import dynamic from "next/dynamic";
 
 const Graph = dynamic(() => import("../components/KnowladgeGraph"), {
   ssr: false,
-  loading: ({ error, isLoading, pastDelay }) => {
-    return <>loading</>;
+  loading: () => {
+    return <>loading...</>;
   },
 });
 
@@ -179,6 +179,19 @@ const Home: NextPage = () => {
     setShowMode("graph");
   }, []);
 
+  const eventUri = useMemo(() => {
+    const ct = Math.round(currentTime * 100) / 100;
+    for (let i = 0; i < durations.length; i++) {
+      if (
+        ct >= Math.round((durations[i - 1] ?? 0) * 100) / 100 &&
+        ct < Math.round(durations[i] * 100) / 100
+      ) {
+        return events[i].event.value.replace(PREFIXES.ex, "ex:");
+      }
+    }
+    return "";
+  }, [currentTime, durations, events]);
+
   return (
     <div>
       <FormControl fullWidth>
@@ -254,7 +267,7 @@ const Home: NextPage = () => {
                           idx
                         ) => {
                           const onClickButton = () => {
-                            setCurrentTime(durations[idx - 1 ?? 0]);
+                            setCurrentTime(durations[idx - 1] ?? 0);
                           };
                           const ct = Math.round(currentTime * 100) / 100;
                           const test =
@@ -345,7 +358,7 @@ const Home: NextPage = () => {
           targets={targets}
         />
       ) : (
-        <Graph />
+        <Graph eventUri={eventUri} />
       )}
     </div>
   );
