@@ -110,7 +110,6 @@ const KnowladgeGraph: React.FC<{ eventNode: NamedNode<string> | null }> = ({
   }, [eventNode]);
 
   const nodesArray = useMemo(() => {
-    console.log("create node array");
     return Object.values(nodes);
   }, [nodes]);
 
@@ -168,14 +167,6 @@ const KnowladgeGraph: React.FC<{ eventNode: NamedNode<string> | null }> = ({
     },
     [addNode]
   );
-
-  useEffect(() => {
-    console.log("links---");
-    for (const l of links) {
-      console.log(l.source, l.target);
-    }
-    console.log("---");
-  }, [links]);
   return (
     <ReactForceGraph2d
       width={1153}
