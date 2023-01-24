@@ -157,7 +157,6 @@ export const fetchState = async (
   const data: { [key: string]: StateObject[] } = {};
   let situationNumber = 0;
   for (const situation of result) {
-    console.log(">>>>", situation.situation.value);
     const objectsQuery = `
       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
       PREFIX ex: <http://example.org/virtualhome2kg/instance/>
@@ -525,7 +524,6 @@ export const fetchTriples: (node: string) => Promise<TriplesType[]> = async (
   select distinct ?p ?o where { 
     ${node} ?p ?o .
   }`;
-  console.log(query);
   const result = (await makeClient().query.select(query)) as TriplesType[];
   return result;
 };
