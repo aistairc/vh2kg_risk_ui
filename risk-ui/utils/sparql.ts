@@ -12,9 +12,21 @@ const makeClient = () => {
 };
 
 export const PREFIXES = {
+  ["vh2kg-action"]: "http://example.org/virtualhome2kg/ontology/action/",
+  hra: "http://example.org/virtualhome2kg/ontology/homeriskactivity/",
   vh2kg: "http://example.org/virtualhome2kg/ontology/",
   ex: "http://example.org/virtualhome2kg/instance/",
-  hra: "http://example.org/virtualhome2kg/ontology/homeriskactivity/",
+  rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+  time: "http://www.w3.org/2006/time#",
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+  owl: "http://www.w3.org/2002/07/owl#",
+  ho: "http://www.owl-ontologies.com/VirtualHome.owl#",
+  xsd: "http://www.w3.org/2001/XMLSchema#",
+  sem: "http://semanticweb.cs.vu.nl/2009/11/sem/",
+  skos: "http://www.w3.org/2004/02/skos/core#",
+  c4dm: "http://purl.org/NET/c4dm/event.owl#",
+  dcterms: "http://purl.org/dc/terms/",
+  ob: "http://raw.githubusercontent.com/aistairc/HomeObjectOntology/main/HomeObject.owl#",
 };
 
 const activityQuery = `prefix ho: <http://www.owl-ontologies.com/VirtualHome.owl#>
@@ -493,4 +505,27 @@ export const calcDiffScore = (sequence: StateObject[]): DiffScoreType => {
     holdsLh: calcDiffScoreWithKey(sequence, "holdsLh"),
     holdsRh: calcDiffScoreWithKey(sequence, "holdsRh"),
   };
+};
+
+type TriplesType = {
+  p: NamedNode;
+  o: NamedNode | Literal;
+};
+
+export const fetchTriples: (node: string) => Promise<TriplesType[]> = async (
+  node
+) => {
+  const query = `
+  ${Object.entries(PREFIXES)
+    .map(([k, v]) => {
+      return `  PREFIX ${k}: <${v}>`;
+    })
+    .join("\n")}
+
+  select distinct ?p ?o where { 
+    ${node} ?p ?o .
+  }`;
+  console.log(query);
+  const result = (await makeClient().query.select(query)) as TriplesType[];
+  return result;
 };

@@ -179,17 +179,17 @@ const Home: NextPage = () => {
     setShowMode("graph");
   }, []);
 
-  const eventUri = useMemo(() => {
+  const eventNode = useMemo(() => {
     const ct = Math.round(currentTime * 100) / 100;
     for (let i = 0; i < durations.length; i++) {
       if (
         ct >= Math.round((durations[i - 1] ?? 0) * 100) / 100 &&
         ct < Math.round(durations[i] * 100) / 100
       ) {
-        return events[i].event.value.replace(PREFIXES.ex, "ex:");
+        return events[i].event;
       }
     }
-    return "";
+    return null;
   }, [currentTime, durations, events]);
 
   return (
@@ -358,7 +358,7 @@ const Home: NextPage = () => {
           targets={targets}
         />
       ) : (
-        <Graph eventUri={eventUri} />
+        <Graph eventNode={eventNode} />
       )}
     </div>
   );
