@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   calcDiffScore,
   DiffScoreType,
@@ -24,7 +30,11 @@ import {
   InputLabel,
   FormControl,
   InputAdornment,
+  Link,
+  Box,
+  Popper,
 } from "@mui/material";
+import { v4 } from "uuid";
 import SearchIcon from "@mui/icons-material/Search";
 
 import { yellow } from "@mui/material/colors";
@@ -90,6 +100,54 @@ const FalseShowItem = {
   between: false,
   holdsLh: false,
   holdsRh: false,
+};
+
+type PopupUriType = {
+  id: string;
+  uri: string;
+};
+
+const URisLink: React.FC<{
+  uris: string[];
+  popupInfo: PopupUriType | null;
+  onClick: (info: PopupUriType | null) => void;
+  popupText: ReactNode | null;
+}> = ({ uris, onClick, popupInfo, popupText }) => {
+  const id = useMemo(() => v4(), []);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+
+  return (
+    <>
+      {uris.map((uri) => {
+        const _onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+          if (popupInfo?.id !== id) {
+            setAnchorEl(e.currentTarget);
+            onClick({ id, uri });
+          } else {
+            onClick(null);
+          }
+        };
+        return (
+          <React.Fragment key={uri}>
+            <Box>
+              <Link sx={{ cursor: "pointer" }} onClick={_onClick}>
+                {uri}
+              </Link>
+            </Box>
+            <Popper
+              id={id}
+              open={id === popupInfo?.id && uri === popupInfo.uri}
+              anchorEl={anchorEl}
+            >
+              <Box sx={{ border: 1, p: 1, bgcolor: "background.paper" }}>
+                {popupText}
+              </Box>
+            </Popper>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
 };
 
 export const ObjectTable: React.FC<{
@@ -268,6 +326,74 @@ export const ObjectTable: React.FC<{
     []
   );
 
+  const [popupInfo, setPopupInfo] = useState<{
+    id: string;
+    uri: string;
+  } | null>(null);
+
+  const popupText = useMemo<ReactNode>(() => {
+    if (!popupInfo) {
+      return null;
+    }
+    const detail = data[popupInfo.uri][situationNumber];
+    const {
+      object,
+      state,
+      close,
+      facing,
+      inside,
+      on,
+      between,
+      holdsLh,
+      holdsRh,
+    } = detail;
+    return (
+      <>
+        <Typography>{object}</Typography>
+        {state.size ? (
+          <Typography paddingLeft="16px">
+            state: {Array.from(state).join(", ")}
+          </Typography>
+        ) : null}
+        {close.size ? (
+          <Typography paddingLeft="16px">
+            close: {Array.from(close).join(", ")}
+          </Typography>
+        ) : null}
+        {facing.size ? (
+          <Typography paddingLeft="16px">
+            facing: {Array.from(facing).join(", ")}
+          </Typography>
+        ) : null}
+        {inside.size ? (
+          <Typography paddingLeft="16px">
+            inside: {Array.from(inside).join(", ")}
+          </Typography>
+        ) : null}
+        {on.size ? (
+          <Typography paddingLeft="16px">
+            on: {Array.from(on).join(", ")}
+          </Typography>
+        ) : null}
+        {between.size ? (
+          <Typography paddingLeft="16px">
+            between: {Array.from(between).join(", ")}
+          </Typography>
+        ) : null}
+        {holdsLh.size ? (
+          <Typography paddingLeft="16px">
+            holds lh: {Array.from(holdsLh).join(", ")}
+          </Typography>
+        ) : null}
+        {holdsRh.size ? (
+          <Typography paddingLeft="16px">
+            holds rh: {Array.from(holdsRh).join(", ")}
+          </Typography>
+        ) : null}
+      </>
+    );
+  }, [data, popupInfo, situationNumber]);
+
   if (!durations.length) {
     return null;
   }
@@ -405,7 +531,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.state),
                       }}
                     >
-                      {Array.from(state).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(state)}
+                      />
                     </TableCell>
                   )}
                   {showItems.close && (
@@ -414,7 +545,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.close),
                       }}
                     >
-                      {Array.from(close).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(close)}
+                      />
                     </TableCell>
                   )}
                   {showItems.facing && (
@@ -423,7 +559,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.facing),
                       }}
                     >
-                      {Array.from(facing).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(facing)}
+                      />
                     </TableCell>
                   )}
                   {showItems.inside && (
@@ -432,7 +573,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.inside),
                       }}
                     >
-                      {Array.from(inside).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(inside)}
+                      />
                     </TableCell>
                   )}
                   {showItems.on && (
@@ -441,7 +587,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.on),
                       }}
                     >
-                      {Array.from(on).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(on)}
+                      />
                     </TableCell>
                   )}
                   {showItems.between && (
@@ -450,7 +601,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.between),
                       }}
                     >
-                      {Array.from(between).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(between)}
+                      />
                     </TableCell>
                   )}
 
@@ -460,7 +616,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.holdsLh),
                       }}
                     >
-                      {Array.from(holdsLh).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(holdsLh)}
+                      />
                     </TableCell>
                   )}
                   {showItems.holdsRh && (
@@ -469,7 +630,12 @@ export const ObjectTable: React.FC<{
                         backgroundColor: diffScoreToColor(score.holdsRh),
                       }}
                     >
-                      {Array.from(holdsRh).join("\n")}
+                      <URisLink
+                        popupInfo={popupInfo}
+                        popupText={popupText}
+                        onClick={setPopupInfo}
+                        uris={Array.from(holdsRh)}
+                      />
                     </TableCell>
                   )}
                 </TableRow>
